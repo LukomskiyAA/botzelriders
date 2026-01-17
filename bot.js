@@ -1,7 +1,10 @@
 const { Bot, InlineKeyboard } = require("grammy");
 const http = require("http");
 
-// Токен вашего бота от @BotFather
+/**
+ * Бот для Zel Riders
+ * Токен: 8394525518:AAF5RD0yvNLZQjiTS3wN61cC3K2HbNwJtxg
+ */
 const bot = new Bot("8394525518:AAF5RD0yvNLZQjiTS3wN61cC3K2HbNwJtxg");
 
 bot.command("start", async (ctx) => {
@@ -21,14 +24,13 @@ bot.command("start", async (ctx) => {
   );
 });
 
-// Запуск бота
 bot.start();
 
-// Хелс-чек сервер для хостингов (Koyeb, Render и др.)
-// Это предотвратит ошибку "Build Failed" или "Port not found"
+// Порт для Koyeb/Render (обязательно для прохождения билда)
+const PORT = process.env.PORT || 8080;
 http.createServer((req, res) => {
   res.writeHead(200);
-  res.end("Bot is running!");
-}).listen(process.env.PORT || 8080);
-
-console.log("Бот Zel Riders успешно запущен...");
+  res.end("Bot is alive!");
+}).listen(PORT, "0.0.0.0", () => {
+  console.log("Сервер проверки запущен на порту " + PORT);
+});
