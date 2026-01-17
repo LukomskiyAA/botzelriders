@@ -1,0 +1,5 @@
+{
+  "name": "TeleGen - Telegram Bot Architect",
+  "description": "A professional tool to design, preview, and generate code for Telegram bots with welcome messages, images, and custom buttons.",
+  "requestFramePermissions": []
+}
