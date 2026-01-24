@@ -1,41 +1,47 @@
 export default {
-  async fetch(request, env) {
-    if (request.method !== "POST") return new Response("OK");
+  async fetch(request, env, ctx) {
+    // Всегда отвечаем 200 Telegram'у
+    const ok = () => new Response("ok");
 
-    let update;
+    if (request.method !== "POST") return ok();
+
     try {
-      update = await request.json();
-    } catch {
-      return new Response("Bad JSON", { status: 400 });
-    }
+      const update = await request.json();
 
-    const text = update?.message?.text;
-    const chatId = update?.message?.chat?.id;
+      const text = update?.message?.text;
+      const chatId = update?.message?.chat?.id;
 
-    if (text === "/start" && chatId) {
-      const payload = {
-        chat_id: chatId,
-        text: "Добро пожаловать!",
-        reply_markup: {
-          inline_keyboard: [[
-            { text: "Открыть мини-приложение", web_app: { url: env.MINIAPP_URL } }
-          ]]
-        }
-      };
+      if (text === "/start" && chatId) {
+        // Проверим env (частая причина 500)
+        if (!env?.BOT_TOKEN) throw new Error("BOT_TOKEN is missing");
+        if (!env?.MINIAPP_URL) throw new Error("MINIAPP_URL is missing");
 
-      const tgRes = await fetch(`https://api.telegram.org/bot${env.BOT_TOKEN}/sendMessage`, {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify(payload),
-      });
+        const payload = {
+          chat_id: chatId,
+          text: "Добро пожаловать!",
+          reply_markup: {
+            inline_keyboard: [[
+              { text: "Открыть мини-приложение", web_app: { url: env.MINIAPP_URL } }
+            ]]
+          }
+        };
 
-      // Если Telegram вернул ошибку — покажем её в ответе (удобно для отладки)
-      if (!tgRes.ok) {
-        const t = await tgRes.text();
-        return new Response(`Telegram error: ${t}`, { status: 502 });
+        // Отправку в Telegram делаем через waitUntil, чтобы ответить Telegram быстро
+        ctx.waitUntil((async () => {
+          const r = await fetch(`https://api.telegram.org/bot${env.BOT_TOKEN}/sendMessage`, {
+            method: "POST",
+            headers: { "content-type": "application/json" },
+            body: JSON.stringify(payload),
+          });
+          const body = await r.text();
+          if (!r.ok) console.error("Telegram sendMessage failed:", r.status, body);
+        })());
       }
-    }
 
-    return new Response("ok");
+      return ok();
+    } catch (e) {
+      console.error("Worker error:", e?.stack || e);
+      return ok(); // ключевой момент: наружу всё равно 200
+    }
   },
 };
